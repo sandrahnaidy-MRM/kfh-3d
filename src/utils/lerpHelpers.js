@@ -45,3 +45,29 @@ export function getSectionProgress(p, sections) {
     nextIndex: Math.min(index + 1, sections - 1),
   };
 }
+
+export function centerAndNormalize(root) {
+  const box = new THREE.Box3().setFromObject(root);
+  const center = box.getCenter(new THREE.Vector3());
+  const size = box.getSize(new THREE.Vector3());
+  root.position.sub(center);
+  const maxAxis = Math.max(size.x, size.y, size.z);
+  if (maxAxis > 0) root.scale.setScalar(1 / maxAxis);
+}
+
+export function makeSCurve({
+  z = -1.4, // عمق ثابت
+  sx = 0.6, // عرض الـS على X
+  sy = 0.35, // ارتفاع الـS على Y
+} = {}) {
+  const points = [
+    new THREE.Vector3(+0.45 * sx, +0.55 * sy, z),
+    new THREE.Vector3(+0.15 * sx, +0.55 * sy, z),
+    new THREE.Vector3(-0.25 * sx, +0.2 * sy, z),
+    new THREE.Vector3(+0.1 * sx, -0.05 * sy, z),
+    new THREE.Vector3(+0.35 * sx, -0.35 * sy, z),
+    new THREE.Vector3(-0.45 * sx, -0.55 * sy, z),
+  ];
+
+  return new THREE.CatmullRomCurve3(points, false, "catmullrom", 0.6);
+}

@@ -1,12 +1,18 @@
+import * as THREE from "three";
+import { makeSCurve } from "@utils/lerpHelpers";
+
+const curve = makeSCurve();
+
 export const SECTIONS = Array.from({ length: 10 }).map((_, i) => {
   const k = i / 9; // 0..1
+  const p = curve.getPointAt(k);
 
   return {
     key: k,
     object: {
-      pos: [0, 0, 0],
-      rot: [-0.2 + k * 0.25, -0.3 + k * 0.6, 0],
-      scale: 0.92 + k * 0.12,
+      pos: [p.x, p.y, p.z],
+      rot: [-0.12 + k * 0.08, -0.2 + k * 0.4, 0],
+      scale: 1.0,
     },
     lights: {
       ambient: 0.35,
@@ -23,11 +29,6 @@ export const SECTIONS = Array.from({ length: 10 }).map((_, i) => {
         intensity: 0.15 + k * 0.2,
       },
     },
-    env: {
-      preset: "apartment", // or "city", "studio", ...
-      intensity: 1,
-      rotationY: 0,
-      background: false,
-    },
+    env: { preset: "apartment", intensity: 1, rotationY: 0, background: false },
   };
 });

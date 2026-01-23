@@ -1,39 +1,31 @@
+import { motion, useScroll, useTransform } from "framer-motion";
 import Gold from "@assets/media/Gold.png";
 import KfhViewer from "@components/KfhViewer";
-
-const SECTIONS = 10;
-
-const SECTION_VH = 110;
-
 export default function App() {
+  const { scrollYProgress } = useScroll();
+
+  // parallax بسيط للخلفية
+  const bgY = useTransform(scrollYProgress, [0, 1], ["0%", "12%"]);
+  const bgScale = useTransform(scrollYProgress, [0, 1], [1, 1.08]);
+
   return (
     <div className="relative min-h-screen bg-zinc-950">
-      {/* Background image */}
       <div className="fixed inset-0 z-0">
-        <img
+        <motion.img
           src={Gold}
           className="absolute inset-0 h-full w-full object-cover"
           alt=""
+          style={{ y: bgY, scale: bgScale }}
         />
+        {/* طبقة تعطي depth */}
+        <div className="absolute inset-0 bg-black/35" />
       </div>
 
-      {/* Fullscreen canvas area */}
-      <div
-        className="fixed inset-0 z-10"
-        style={{
-          height: "100svh",
-        }}
-      >
-        <KfhViewer sections={SECTIONS} />
+      <div className="fixed inset-0 z-10" style={{ height: "100svh" }}>
+        <KfhViewer sections={10} />
       </div>
 
-      {/* Scroll space to drive animation */}
-      <div
-        className="relative z-0"
-        style={{
-          height: `${SECTIONS * SECTION_VH}vh`,
-        }}
-      />
+      <div className="relative z-0" style={{ height: `${10 * 110}vh` }} />
     </div>
   );
 }
