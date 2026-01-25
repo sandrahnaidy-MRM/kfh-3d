@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import SceneCanvas, { type ControlMode } from "./components/SceneCanvas";
 import ControlsPanel from "./components/ControlsPanel";
@@ -14,20 +14,26 @@ export default function App() {
   const [enabled, setEnabled] = useState(true);
   const [snapMove, setSnapMove] = useState(0);
   const [snapRotateDeg, setSnapRotateDeg] = useState(0);
+
+  // ✅ tick to refresh pose text (driven by onObjectChange + play updates)
   const [poseTick, setPoseTick] = useState(0);
 
-  const recorder = useSceneRecorder({ modelUrl: MODEL_URL, objectRef });
-
-  const [dragging, setDragging] = useState(false);
+  const recorder = useSceneRecorder({
+    modelUrl: MODEL_URL,
+    objectRef,
+    onPoseTick: () => setPoseTick((x) => x + 1),
+  });
 
   const currentPoseText = useMemo(() => {
     const obj = objectRef.current;
     if (!obj) return "Loading...";
     const p = obj.position;
     const r = obj.rotation;
+    const s = obj.scale;
     return [
       `position: x=${p.x.toFixed(2)}  y=${p.y.toFixed(2)}  z=${p.z.toFixed(2)}`,
       `rotation(rad): x=${r.x.toFixed(2)}  y=${r.y.toFixed(2)}  z=${r.z.toFixed(2)}`,
+      `scale: x=${s.x.toFixed(2)}  y=${s.y.toFixed(2)}  z=${s.z.toFixed(2)}`,
     ].join("\n");
   }, [poseTick, recorder.frames.length]);
 
@@ -42,6 +48,7 @@ export default function App() {
     if (!json) return;
     try {
       recorder.importJSON(json);
+      setPoseTick((x) => x + 1);
       alert("Imported ✅");
     } catch (e: any) {
       alert(e?.message || "Invalid JSON");
@@ -52,10 +59,8 @@ export default function App() {
     <div className="h-full w-full bg-zinc-900">
       <div className="flex h-full w-full flex-col md:flex-row">
         <div className="relative flex-1">
-          <div className="absolute left-4 top-4 z-10 rounded-xl bg-blue-500/50 px-3 py-2 text-xs text-white backdrop-blur">
-            {dragging
-              ? "Editing: dragging..."
-              : "Tip: Use TransformControls to move/rotate → Add Step → Play"}
+          <div className="absolute left-4 top-4 z-10 rounded-xl bg-blue-500/40 px-3 py-2 text-xs text-white backdrop-blur">
+            Tip: Use gizmo (arrows/rings) → Add → repeat → Play
           </div>
 
           <SceneCanvas
@@ -66,15 +71,11 @@ export default function App() {
             snapMove={snapMove}
             snapRotateDeg={snapRotateDeg}
             objectRef={objectRef}
-            onDraggingChange={setDragging}
-            onPoseTick={async () => {
-              await setPoseTick((x) => x + 1);
-              console.log("[NEW Pose Tick]", poseTick);
-            }}
+            onPoseTick={() => setPoseTick((x) => x + 1)}
           />
         </div>
 
-        <div className="p-3 md:p-4 md:w-[420px] overflow-y-auto h-full">
+        <div className="h-full overflow-y-auto p-3 md:w-[420px] md:p-4">
           <ControlsPanel
             mode={mode}
             setMode={setMode}
@@ -92,9 +93,12 @@ export default function App() {
             onClear={recorder.clearFrames}
             onPlay={recorder.play}
             onStop={recorder.stop}
+            onResetPose={recorder.resetPose}
             onJumpTo={recorder.setPose}
             onExport={onExport}
             onImport={onImport}
+            onUpdateFrame={recorder.updateFrame}
+            eases={recorder.DEFAULT_EASES}
             currentPoseText={currentPoseText}
           />
         </div>

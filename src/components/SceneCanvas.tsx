@@ -9,7 +9,7 @@ import * as THREE from "three";
 import { TransformControls as TransformControlsImpl } from "three-stdlib";
 import Model from "./Model";
 
-export type ControlMode = "translate" | "rotate";
+export type ControlMode = "translate" | "rotate" | "scale";
 
 type Props = {
   modelUrl: string;
