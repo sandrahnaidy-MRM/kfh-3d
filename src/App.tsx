@@ -16,7 +16,7 @@ export default function App() {
   const [snapMove, setSnapMove] = useState(0);
   const [snapRotateDeg, setSnapRotateDeg] = useState(0);
 
-  // ✅ tick to refresh pose text (driven by onObjectChange + play updates)
+  //  tick to refresh pose text (driven by onObjectChange + play updates)
   const [poseTick, setPoseTick] = useState(0);
 
   const recorder = useSceneRecorder({
@@ -25,14 +25,14 @@ export default function App() {
     onPoseTick: () => setPoseTick((x) => x + 1),
   });
 
-  // ✅ mode switch
+  //  mode switch
   const [pageMode, setPageMode] = useState<"editor" | "scroll">("editor");
   const isScrollMode = pageMode === "scroll";
 
-  // ✅ scroll container (we scroll inside this div, not the whole page)
+  //  scroll container (we scroll inside this div, not the whole page)
   const scrollWrapRef = useRef<HTMLDivElement | null>(null);
 
-  // ✅ enable scroll playback only in scroll mode
+  //  enable scroll playback only in scroll mode
   useScrollPlayback({
     frames: recorder.frames,
     objectRef,
@@ -41,7 +41,7 @@ export default function App() {
     onPoseTick: () => setPoseTick((x) => x + 1),
   });
 
-  // ✅ disable BODY scroll in scroll mode
+  //  disable BODY scroll in scroll mode
   useEffect(() => {
     const prev = document.body.style.overflow;
     document.body.style.overflow = isScrollMode ? "hidden" : "auto";
@@ -66,7 +66,7 @@ export default function App() {
   const onExport = () => {
     const json = recorder.exportJSON();
     navigator.clipboard.writeText(json).catch(() => {});
-    alert("Recording JSON copied to clipboard ✅");
+    alert("Recording JSON copied to clipboard ");
   };
 
   const onImport = () => {
@@ -75,7 +75,7 @@ export default function App() {
     try {
       recorder.importJSON(json);
       setPoseTick((x) => x + 1);
-      alert("Imported ✅");
+      alert("Imported ");
     } catch (e: any) {
       alert(e?.message || "Invalid JSON");
     }
@@ -149,22 +149,22 @@ export default function App() {
               : "Tip: Use gizmo (arrows/rings) → Add → repeat → Play"}
           </div>
 
-          {/* ✅ Canvas is ALWAYS mounted */}
+          {/*  Canvas is ALWAYS mounted */}
           <SceneCanvas
             modelUrl={MODEL_URL}
             mode={mode}
             space={space}
-            enabled={!isScrollMode && enabled} // ✅ disable TransformControls in scroll mode
+            enabled={!isScrollMode && enabled} //  disable TransformControls in scroll mode
             snapMove={snapMove}
             snapRotateDeg={snapRotateDeg}
             objectRef={objectRef}
             onPoseTick={() => setPoseTick((x) => x + 1)}
-            // ✅ you MUST implement these two props in SceneCanvas
+            //  you MUST implement these two props in SceneCanvas
             orbitEnabled={!isScrollMode} // stop zoom/pan/rotate
             transformEnabled={!isScrollMode} // hide/disable gizmo
           />
 
-          {/* ✅ Scroll mode: overlay scroll container (Canvas stays visible) */}
+          {/*  Scroll mode: overlay scroll container (Canvas stays visible) */}
           {isScrollMode && (
             <div
               ref={scrollWrapRef}

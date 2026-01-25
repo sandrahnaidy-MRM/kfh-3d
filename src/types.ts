@@ -8,12 +8,12 @@ export type Keyframe = {
   ease: string;
 
   position: Vec3;
-  quaternion: Quat; // ✅ smooth rotation
-  scale: Vec3; // ✅ include scale
+  quaternion: Quat; //  smooth rotation
+  scale: Vec3; //  include scale
 };
 
 export type SceneRecording = {
-  version: 2; // ✅ bump version
+  version: 2; //  bump version
   modelUrl: string;
   frames: Keyframe[];
 };

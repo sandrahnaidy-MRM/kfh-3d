@@ -58,7 +58,7 @@ function SceneContent({
     };
   }, [objectRef]);
 
-  // ✅ CRITICAL: attach TransformControls to the group (guaranteed)
+  //  CRITICAL: attach TransformControls to the group (guaranteed)
   useEffect(() => {
     const tc = tcRef.current;
     const g = groupRef.current;
@@ -78,7 +78,7 @@ function SceneContent({
     };
   }, [mode, space]);
 
-  // ✅ robust dragging toggle (disable orbit while dragging)
+  //  robust dragging toggle (disable orbit while dragging)
   useEffect(() => {
     const tc = tcRef.current;
     if (!tc) return;
@@ -98,7 +98,7 @@ function SceneContent({
       (tc as any).removeEventListener("dragging-changed", onDragChanged);
   }, [onDraggingChange, onPoseTick]);
 
-  // ✅ When the object actually changes (move/rotate), tick
+  //  When the object actually changes (move/rotate), tick
   const handleObjectChange = () => {
     const g = groupRef.current;
     if (!g) return;

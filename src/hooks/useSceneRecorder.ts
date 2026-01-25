@@ -80,7 +80,7 @@ export function useSceneRecorder({
     }
   }, []);
 
-  // ✅ Build (or rebuild) GSAP timeline based on current frames
+  //  Build (or rebuild) GSAP timeline based on current frames
   const buildTimeline = useCallback(() => {
     const obj = objectRef.current;
     if (!obj) return null;
@@ -154,7 +154,7 @@ export function useSceneRecorder({
   const rebuildTimeline = useCallback(() => {
     const obj = objectRef.current;
 
-    // ✅ save current pose so we don't disturb user pose
+    //  save current pose so we don't disturb user pose
     const savedPose = obj
       ? {
           position: obj.position.clone(),
@@ -169,7 +169,7 @@ export function useSceneRecorder({
     if (!tl) {
       setScrubState(0);
 
-      // ✅ restore pose
+      //  restore pose
       if (obj && savedPose) {
         obj.position.copy(savedPose.position);
         obj.quaternion.copy(savedPose.quaternion);
@@ -186,7 +186,7 @@ export function useSceneRecorder({
     const p = Math.max(0, Math.min(1, scrub));
     tl.progress(p).pause();
 
-    // ✅ restore pose after rebuilding timeline
+    //  restore pose after rebuilding timeline
     if (obj && savedPose) {
       obj.position.copy(savedPose.position);
       obj.quaternion.copy(savedPose.quaternion);
@@ -196,7 +196,7 @@ export function useSceneRecorder({
     onPoseTick?.();
   }, [buildTimeline, stop, scrub, onPoseTick, objectRef]);
 
-  // ✅ rebuild whenever frames change
+  //  rebuild whenever frames change
   useEffect(() => {
     rebuildTimeline();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -236,7 +236,7 @@ export function useSceneRecorder({
     );
   }, []);
 
-  // ✅ NEW: delete step by id
+  //  NEW: delete step by id
   const deleteFrame = useCallback((id: string) => {
     setFrames((prev) => prev.filter((f) => f.id !== id));
   }, []);
@@ -249,7 +249,7 @@ export function useSceneRecorder({
     setFrames([]);
   }, []);
 
-  // ✅ NEW: scrub to any progress 0..1
+  //  NEW: scrub to any progress 0..1
   const setScrub = useCallback(
     (p: number) => {
       const tl = tlRef.current;

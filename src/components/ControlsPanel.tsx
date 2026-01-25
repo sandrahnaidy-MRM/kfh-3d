@@ -102,7 +102,7 @@ function findNearestMarker(markers: { p: number }[], progress: number) {
 
 export default function ControlsPanel(props: Props) {
   const { total, markers } = computeMarkers(props.frames);
-  const snapThreshold = 0.012; // ✅ قرب ~1.2% من طول التايملاين = Snap (عدلها حسب رغبتك)
+  const snapThreshold = 0.012; //  قرب ~1.2% من طول التايملاين = Snap (عدلها حسب رغبتك)
 
   // for label (sec)
   const curSec = total > 0 ? props.scrub * total : 0;
@@ -236,7 +236,7 @@ export default function ControlsPanel(props: Props) {
         </div>
 
         <div className="relative mt-2">
-          {/* ✅ Range */}
+          {/*  Range */}
           <input
             className="w-full"
             type="range"
@@ -246,7 +246,7 @@ export default function ControlsPanel(props: Props) {
             value={props.scrub}
             onChange={(e) => {
               const v = clamp01(Number(e.target.value));
-              // ✅ snap automatically if close to marker
+              //  snap automatically if close to marker
               const near = findNearestMarker(markers, v);
               if (near && near.dist <= snapThreshold) {
                 props.onScrub(near.marker.p);
@@ -256,7 +256,7 @@ export default function ControlsPanel(props: Props) {
             }}
           />
 
-          {/* ✅ Markers overlay */}
+          {/*  Markers overlay */}
           <div className="pointer-events-none absolute inset-x-0 top-1/2 h-0">
             {markers.map((m, idx) => (
               <div
@@ -357,7 +357,7 @@ export default function ControlsPanel(props: Props) {
                   </div>
                 </button>
 
-                {/* ✅ duration editor */}
+                {/*  duration editor */}
                 <div className="mt-3 grid grid-cols-2 gap-2">
                   <label className="text-xs opacity-80">
                     Duration (s)
@@ -375,7 +375,7 @@ export default function ControlsPanel(props: Props) {
                     />
                   </label>
 
-                  {/* ✅ ease selector */}
+                  {/*  ease selector */}
                   <label className="text-xs opacity-80">
                     Ease
                     <select

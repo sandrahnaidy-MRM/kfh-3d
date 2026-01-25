@@ -119,7 +119,7 @@ export function useScrollPlayback({
         end: () => el.scrollHeight - el.clientHeight,
         scrub: 1,
         onUpdate: (self) => {
-          debugger; // ✅ الآن سيتنفّذ
+          debugger; //  الآن سيتنفّذ
           console.log("[SCROLL UPDATE]", {
             progress: self.progress,
             scrollTop: el.scrollTop,
