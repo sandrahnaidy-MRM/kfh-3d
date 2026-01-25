@@ -113,9 +113,10 @@ function SceneContent({
       <directionalLight position={[0, 3, -5]} intensity={0.25} />
 
       {/* ground */}
+
       <mesh rotation-x={-Math.PI / 2} position={[0, -1.05, 0]} receiveShadow>
-        <planeGeometry args={[50, 50]} />
-        <meshStandardMaterial />
+        <planeGeometry args={[80, 80]} />
+        <meshStandardMaterial color="#0b0f19" roughness={0.9} metalness={0.0} />
       </mesh>
 
       {/* Transform gizmo (it controls the attached group) */}

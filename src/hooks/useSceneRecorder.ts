@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import gsap from "gsap";
 import * as THREE from "three";
 import type { Keyframe, SceneRecording, Quat, Vec3 } from "../types";
@@ -7,7 +7,7 @@ import { toVec3 } from "../utils/math";
 type UseSceneRecorderArgs = {
   modelUrl: string;
   objectRef: React.MutableRefObject<THREE.Object3D | null>;
-  onPoseTick?: () => void; // ✅ lets UI refresh during play/edit
+  onPoseTick?: () => void;
 };
 
 const DEFAULT_EASES = [
@@ -31,9 +31,10 @@ export function useSceneRecorder({
   onPoseTick,
 }: UseSceneRecorderArgs) {
   const [frames, setFrames] = useState<Keyframe[]>([]);
+  const [scrub, setScrubState] = useState(0); // 0..1
+
   const tlRef = useRef<gsap.core.Timeline | null>(null);
 
-  // ✅ store initial pose once we have an object
   const initialPoseRef = useRef<{
     position: Vec3;
     quaternion: Quat;
@@ -52,52 +53,25 @@ export function useSceneRecorder({
     };
   }, [objectRef]);
 
+  const resetToInitialPose = useCallback(() => {
+    const obj = objectRef.current;
+    const init = initialPoseRef.current;
+    if (!obj || !init) return;
+
+    obj.position.set(init.position[0], init.position[1], init.position[2]);
+    obj.scale.set(init.scale[0], init.scale[1], init.scale[2]);
+    obj.quaternion.set(
+      init.quaternion[0],
+      init.quaternion[1],
+      init.quaternion[2],
+      init.quaternion[3],
+    );
+  }, [objectRef]);
+
   const recording: SceneRecording = useMemo(
     () => ({ version: 2, modelUrl, frames }),
     [modelUrl, frames],
   );
-
-  const captureFrame = useCallback(
-    (opts?: Partial<Pick<Keyframe, "duration" | "ease" | "label">>) => {
-      const obj = objectRef.current;
-      if (!obj) return;
-
-      ensureInitialPose();
-
-      const id = crypto.randomUUID();
-      const position: Vec3 = toVec3(obj.position);
-      const scale: Vec3 = toVec3(obj.scale);
-      const quaternion: Quat = toQuat(obj.quaternion);
-
-      const frame: Keyframe = {
-        id,
-        label: opts?.label ?? `Step ${frames.length + 1}`,
-        duration: opts?.duration ?? 1.2,
-        ease: opts?.ease ?? "power2.inOut",
-        position,
-        quaternion,
-        scale,
-      };
-
-      setFrames((prev) => [...prev, frame]);
-      onPoseTick?.();
-    },
-    [objectRef, frames.length, ensureInitialPose, onPoseTick],
-  );
-
-  const updateFrame = useCallback((id: string, patch: Partial<Keyframe>) => {
-    setFrames((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, ...patch } : f)),
-    );
-  }, []);
-
-  const removeLastFrame = useCallback(() => {
-    setFrames((prev) => prev.slice(0, -1));
-  }, []);
-
-  const clearFrames = useCallback(() => {
-    setFrames([]);
-  }, []);
 
   const stop = useCallback(() => {
     if (tlRef.current) {
@@ -106,29 +80,29 @@ export function useSceneRecorder({
     }
   }, []);
 
-  // ✅ Smooth quaternion slerp per segment
-  const play = useCallback(() => {
+  // ✅ Build (or rebuild) GSAP timeline based on current frames
+  const buildTimeline = useCallback(() => {
     const obj = objectRef.current;
-    if (!obj) return;
-    if (frames.length === 0) return;
+    if (!obj) return null;
+    if (frames.length === 0) return null;
 
-    stop();
-
-    // Ensure we have a baseline initial pose
     ensureInitialPose();
 
-    const tl = gsap.timeline({ defaults: { overwrite: "auto" } });
+    // Start from initial pose for deterministic scrubbing
+    resetToInitialPose();
 
-    // We slerp from startQ to endQ using a proxy value t:0..1
+    const tl = gsap.timeline({
+      paused: true,
+      defaults: { overwrite: "auto" },
+    });
+
     const proxy = { t: 0 };
 
     for (const f of frames) {
-      // Capture start quaternion at segment start (important!)
       let startQ = obj.quaternion.clone();
       const endQ = quatFromArray(f.quaternion);
 
       tl.add(() => {
-        // refresh startQ at runtime (timeline point)
         startQ = obj.quaternion.clone();
         proxy.t = 0;
       }, ">");
@@ -166,7 +140,6 @@ export function useSceneRecorder({
           duration: f.duration,
           ease: f.ease,
           onUpdate: () => {
-            // Smooth rotation
             obj.quaternion.copy(startQ).slerp(endQ, proxy.t);
             onPoseTick?.();
           },
@@ -175,69 +148,160 @@ export function useSceneRecorder({
       );
     }
 
-    tlRef.current = tl;
-  }, [frames, objectRef, stop, ensureInitialPose, onPoseTick]);
+    return tl;
+  }, [frames, objectRef, ensureInitialPose, resetToInitialPose, onPoseTick]);
 
-  const setPose = useCallback(
-    (index: number) => {
-      const obj = objectRef.current;
-      const f = frames[index];
-      if (!obj || !f) return;
-
-      obj.position.set(f.position[0], f.position[1], f.position[2]);
-      obj.scale.set(f.scale[0], f.scale[1], f.scale[2]);
-      obj.quaternion.set(
-        f.quaternion[0],
-        f.quaternion[1],
-        f.quaternion[2],
-        f.quaternion[3],
-      );
-      onPoseTick?.();
-    },
-    [frames, objectRef, onPoseTick],
-  );
-
-  const resetPose = useCallback(() => {
+  const rebuildTimeline = useCallback(() => {
     const obj = objectRef.current;
-    if (!obj) return;
 
-    ensureInitialPose();
-    const init = initialPoseRef.current;
-    if (!init) return;
+    // ✅ save current pose so we don't disturb user pose
+    const savedPose = obj
+      ? {
+          position: obj.position.clone(),
+          quaternion: obj.quaternion.clone(),
+          scale: obj.scale.clone(),
+        }
+      : null;
 
     stop();
 
-    obj.position.set(init.position[0], init.position[1], init.position[2]);
-    obj.scale.set(init.scale[0], init.scale[1], init.scale[2]);
-    obj.quaternion.set(
-      init.quaternion[0],
-      init.quaternion[1],
-      init.quaternion[2],
-      init.quaternion[3],
-    );
+    const tl = buildTimeline();
+    if (!tl) {
+      setScrubState(0);
+
+      // ✅ restore pose
+      if (obj && savedPose) {
+        obj.position.copy(savedPose.position);
+        obj.quaternion.copy(savedPose.quaternion);
+        obj.scale.copy(savedPose.scale);
+      }
+
+      onPoseTick?.();
+      return;
+    }
+
+    tlRef.current = tl;
+
+    // keep scrub position (clamped)
+    const p = Math.max(0, Math.min(1, scrub));
+    tl.progress(p).pause();
+
+    // ✅ restore pose after rebuilding timeline
+    if (obj && savedPose) {
+      obj.position.copy(savedPose.position);
+      obj.quaternion.copy(savedPose.quaternion);
+      obj.scale.copy(savedPose.scale);
+    }
+
     onPoseTick?.();
-  }, [objectRef, ensureInitialPose, stop, onPoseTick]);
+  }, [buildTimeline, stop, scrub, onPoseTick, objectRef]);
 
-  const exportJSON = useCallback(() => {
-    return JSON.stringify(recording, null, 2);
-  }, [recording]);
+  // ✅ rebuild whenever frames change
+  useEffect(() => {
+    rebuildTimeline();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [frames]);
 
-  // ✅ supports importing old v1 recordings (Euler-only) and upgrades to v2
+  const captureFrame = useCallback(
+    (opts?: Partial<Pick<Keyframe, "duration" | "ease" | "label">>) => {
+      const obj = objectRef.current;
+      if (!obj) return;
+
+      ensureInitialPose();
+
+      const id = crypto.randomUUID();
+      const position: Vec3 = toVec3(obj.position);
+      const scale: Vec3 = toVec3(obj.scale);
+      const quaternion: Quat = toQuat(obj.quaternion);
+
+      const frame: Keyframe = {
+        id,
+        label: opts?.label ?? `Step ${frames.length + 1}`,
+        duration: opts?.duration ?? 1.2,
+        ease: opts?.ease ?? "power2.inOut",
+        position,
+        quaternion,
+        scale,
+      };
+
+      setFrames((prev) => [...prev, frame]);
+      onPoseTick?.();
+    },
+    [objectRef, frames.length, ensureInitialPose, onPoseTick],
+  );
+
+  const updateFrame = useCallback((id: string, patch: Partial<Keyframe>) => {
+    setFrames((prev) =>
+      prev.map((f) => (f.id === id ? { ...f, ...patch } : f)),
+    );
+  }, []);
+
+  // ✅ NEW: delete step by id
+  const deleteFrame = useCallback((id: string) => {
+    setFrames((prev) => prev.filter((f) => f.id !== id));
+  }, []);
+
+  const removeLastFrame = useCallback(() => {
+    setFrames((prev) => prev.slice(0, -1));
+  }, []);
+
+  const clearFrames = useCallback(() => {
+    setFrames([]);
+  }, []);
+
+  // ✅ NEW: scrub to any progress 0..1
+  const setScrub = useCallback(
+    (p: number) => {
+      const tl = tlRef.current;
+      const v = Math.max(0, Math.min(1, p));
+      setScrubState(v);
+
+      if (!tl) {
+        // if no timeline, just ensure initial pose (if any)
+        ensureInitialPose();
+        resetToInitialPose();
+        onPoseTick?.();
+        return;
+      }
+
+      tl.pause();
+      tl.progress(v);
+      onPoseTick?.();
+    },
+    [ensureInitialPose, resetToInitialPose, onPoseTick],
+  );
+
+  const play = useCallback(() => {
+    const tl = tlRef.current;
+
+    // if timeline not built yet, try build now
+    if (!tl) {
+      const newTl = buildTimeline();
+      if (!newTl) return;
+      tlRef.current = newTl;
+    }
+
+    tlRef.current!.play();
+  }, [buildTimeline]);
+
+  const exportJSON = useCallback(
+    () => JSON.stringify(recording, null, 2),
+    [recording],
+  );
+
   const importJSON = useCallback((json: string) => {
     const parsed = JSON.parse(json);
 
     if (!parsed || !Array.isArray(parsed.frames))
       throw new Error("Invalid recording JSON");
 
-    // v2
     if (parsed.version === 2) {
       setFrames(parsed.frames as Keyframe[]);
       return;
     }
 
-    // v1 upgrade (if you had old format)
     if (parsed.version === 1) {
-      // v1 had: position, rotation(euler), ease, duration, label
+      // upgrade v1 (Euler) => v2 (quat + scale)
       const upgraded: Keyframe[] = (parsed.frames as any[]).map((f) => {
         const e = new THREE.Euler(
           f.rotation?.[0] ?? 0,
@@ -262,19 +326,55 @@ export function useSceneRecorder({
     throw new Error("Unsupported recording version");
   }, []);
 
+  const setPose = useCallback(
+    (index: number) => {
+      const obj = objectRef.current;
+      const f = frames[index];
+      if (!obj || !f) return;
+
+      stop(); // stop playback when jumping
+      obj.position.set(f.position[0], f.position[1], f.position[2]);
+      obj.scale.set(f.scale[0], f.scale[1], f.scale[2]);
+      obj.quaternion.set(
+        f.quaternion[0],
+        f.quaternion[1],
+        f.quaternion[2],
+        f.quaternion[3],
+      );
+      onPoseTick?.();
+    },
+    [frames, objectRef, stop, onPoseTick],
+  );
+
+  const resetPose = useCallback(() => {
+    ensureInitialPose();
+    stop();
+    resetToInitialPose();
+    setScrub(0);
+    onPoseTick?.();
+  }, [ensureInitialPose, stop, resetToInitialPose, setScrub, onPoseTick]);
+
   return {
     frames,
     setFrames,
     captureFrame,
     updateFrame,
+    deleteFrame,
     removeLastFrame,
     clearFrames,
+
     play,
     stop,
     setPose,
     resetPose,
+
+    scrub,
+    setScrub,
+
     exportJSON,
     importJSON,
+
+    rebuildTimeline,
     DEFAULT_EASES,
   };
 }

@@ -54,6 +54,33 @@ export default function App() {
       alert(e?.message || "Invalid JSON");
     }
   };
+  const snapToNearest = () => {
+    const frames = recorder.frames;
+    const total =
+      frames.reduce((s, f) => s + (Number(f.duration) || 0), 0) || 0;
+    if (!frames.length || total <= 0) return;
+
+    let acc = 0;
+    const markers = frames.map((f) => {
+      const t = acc;
+      acc += Number(f.duration) || 0;
+      return { p: t / total };
+    });
+
+    const cur = recorder.scrub;
+
+    let best = markers[0];
+    let bestD = Math.abs(cur - markers[0].p);
+    for (let i = 1; i < markers.length; i++) {
+      const d = Math.abs(cur - markers[i].p);
+      if (d < bestD) {
+        bestD = d;
+        best = markers[i];
+      }
+    }
+
+    recorder.setScrub(best.p);
+  };
 
   return (
     <div className="h-full w-full bg-zinc-900">
@@ -100,6 +127,10 @@ export default function App() {
             onUpdateFrame={recorder.updateFrame}
             eases={recorder.DEFAULT_EASES}
             currentPoseText={currentPoseText}
+            scrub={recorder.scrub}
+            onScrub={recorder.setScrub}
+            onDeleteStep={recorder.deleteFrame}
+            onSnapToNearest={snapToNearest}
           />
         </div>
       </div>
