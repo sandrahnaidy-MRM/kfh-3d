@@ -1,8 +1,9 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import SceneCanvas, { type ControlMode } from "./components/SceneCanvas";
 import ControlsPanel from "./components/ControlsPanel";
 import { useSceneRecorder } from "./hooks/useSceneRecorder";
+import { useScrollPlayback } from "./hooks/useScrollPlayback";
 
 const MODEL_URL = "/models/model.glb";
 
@@ -23,6 +24,31 @@ export default function App() {
     objectRef,
     onPoseTick: () => setPoseTick((x) => x + 1),
   });
+
+  // ✅ mode switch
+  const [pageMode, setPageMode] = useState<"editor" | "scroll">("editor");
+  const isScrollMode = pageMode === "scroll";
+
+  // ✅ scroll container (we scroll inside this div, not the whole page)
+  const scrollWrapRef = useRef<HTMLDivElement | null>(null);
+
+  // ✅ enable scroll playback only in scroll mode
+  useScrollPlayback({
+    frames: recorder.frames,
+    objectRef,
+    enabled: isScrollMode,
+    container: scrollWrapRef,
+    onPoseTick: () => setPoseTick((x) => x + 1),
+  });
+
+  // ✅ disable BODY scroll in scroll mode
+  useEffect(() => {
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = isScrollMode ? "hidden" : "auto";
+    return () => {
+      document.body.style.overflow = prev || "auto";
+    };
+  }, [isScrollMode]);
 
   const currentPoseText = useMemo(() => {
     const obj = objectRef.current;
@@ -54,6 +80,7 @@ export default function App() {
       alert(e?.message || "Invalid JSON");
     }
   };
+
   const snapToNearest = () => {
     const frames = recorder.frames;
     const total =
@@ -83,25 +110,102 @@ export default function App() {
   };
 
   return (
-    <div className="h-full w-full bg-zinc-900">
-      <div className="flex h-full w-full flex-col md:flex-row">
+    <div className="h-full w-full bg-zinc-900 text-white">
+      {/* Top bar */}
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <div className="text-sm font-semibold">3D Scene Builder</div>
+
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            className={`rounded-xl px-3 py-2 text-sm ${
+              pageMode === "editor" ? "bg-white text-blue-600" : "bg-white/10"
+            }`}
+            onClick={() => setPageMode("editor")}
+          >
+            Editor
+          </button>
+
+          <button
+            type="button"
+            className={`rounded-xl px-3 py-2 text-sm ${
+              pageMode === "scroll" ? "bg-white text-blue-600" : "bg-white/10"
+            }`}
+            onClick={() => setPageMode("scroll")}
+          >
+            Scroll
+          </button>
+        </div>
+      </div>
+
+      {/* Main layout: Canvas left + Controls right ALWAYS */}
+      <div className="flex h-[calc(100vh-68px)] w-full flex-col md:flex-row">
+        {/* LEFT */}
         <div className="relative flex-1">
+          {/* tip */}
           <div className="absolute left-4 top-4 z-10 rounded-xl bg-blue-500/40 px-3 py-2 text-xs text-white backdrop-blur">
-            Tip: Use gizmo (arrows/rings) → Add → repeat → Play
+            {isScrollMode
+              ? "Scroll Mode: scroll the content to drive the animation"
+              : "Tip: Use gizmo (arrows/rings) → Add → repeat → Play"}
           </div>
 
+          {/* ✅ Canvas is ALWAYS mounted */}
           <SceneCanvas
             modelUrl={MODEL_URL}
             mode={mode}
             space={space}
-            enabled={enabled}
+            enabled={!isScrollMode && enabled} // ✅ disable TransformControls in scroll mode
             snapMove={snapMove}
             snapRotateDeg={snapRotateDeg}
             objectRef={objectRef}
             onPoseTick={() => setPoseTick((x) => x + 1)}
+            // ✅ you MUST implement these two props in SceneCanvas
+            orbitEnabled={!isScrollMode} // stop zoom/pan/rotate
+            transformEnabled={!isScrollMode} // hide/disable gizmo
           />
+
+          {/* ✅ Scroll mode: overlay scroll container (Canvas stays visible) */}
+          {isScrollMode && (
+            <div
+              ref={scrollWrapRef}
+              className="absolute inset-0 z-0 overflow-y-auto"
+            >
+              {/* give enough scroll length */}
+              <div className="h-[70vh]" />
+
+              <div className="mx-auto max-w-3xl space-y-16 px-6 py-12">
+                <section className="rounded-2xl bg-white/5 p-6">
+                  <h2 className="text-xl font-semibold">Scroll to animate</h2>
+                  <p className="mt-2 opacity-80">
+                    The model follows your recorded steps as you scroll (0% →
+                    100%).
+                  </p>
+                </section>
+
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <section key={i} className="rounded-2xl bg-white/5 p-6">
+                    <h3 className="text-lg font-semibold">Section {i + 1}</h3>
+                    <p className="mt-2 opacity-80">
+                      Scroll progress drives the timeline.
+                    </p>
+                    <div className="mt-4 h-24 rounded-xl bg-black/30" />
+                  </section>
+                ))}
+
+                <section className="rounded-2xl bg-white/5 p-6">
+                  <h3 className="text-lg font-semibold">End</h3>
+                  <p className="mt-2 opacity-80">
+                    You reached 100% of the animation.
+                  </p>
+                </section>
+
+                <div className="h-[25vh]" />
+              </div>
+            </div>
+          )}
         </div>
 
+        {/* RIGHT */}
         <div className="h-full overflow-y-auto p-3 md:w-[420px] md:p-4">
           <ControlsPanel
             mode={mode}
@@ -132,6 +236,13 @@ export default function App() {
             onDeleteStep={recorder.deleteFrame}
             onSnapToNearest={snapToNearest}
           />
+
+          {isScrollMode && (
+            <div className="mt-3 rounded-xl bg-white/5 p-3 text-xs opacity-80">
+              In Scroll Mode: Transform + Orbit are disabled. Use the scroll
+              area on the left.
+            </div>
+          )}
         </div>
       </div>
     </div>

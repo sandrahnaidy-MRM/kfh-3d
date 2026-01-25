@@ -21,6 +21,9 @@ type Props = {
   objectRef: React.MutableRefObject<THREE.Object3D | null>;
   onDraggingChange?: (dragging: boolean) => void;
   onPoseTick?: () => void;
+
+  orbitEnabled?: boolean; // default true
+  transformEnabled?: boolean; // default true
 };
 
 function SceneContent({
@@ -33,6 +36,8 @@ function SceneContent({
   objectRef,
   onDraggingChange,
   onPoseTick,
+  orbitEnabled,
+  transformEnabled,
 }: Props) {
   const orbitRef = useRef<any>(null);
   const groupRef = useRef<THREE.Group | null>(null);
@@ -120,20 +125,22 @@ function SceneContent({
       </mesh>
 
       {/* Transform gizmo (it controls the attached group) */}
-      <TransformControls
-        ref={tcRef}
-        enabled={enabled}
-        mode={mode}
-        space={space}
-        size={2.2} // make gizmo big/visible
-        translationSnap={snapMove > 0 ? snapMove : undefined}
-        rotationSnap={
-          snapRotateDeg > 0
-            ? THREE.MathUtils.degToRad(snapRotateDeg)
-            : undefined
-        }
-        onObjectChange={handleObjectChange}
-      />
+      {transformEnabled && (
+        <TransformControls
+          ref={tcRef}
+          enabled={enabled}
+          mode={mode}
+          space={space}
+          size={2.2} // make gizmo big/visible
+          translationSnap={snapMove > 0 ? snapMove : undefined}
+          rotationSnap={
+            snapRotateDeg > 0
+              ? THREE.MathUtils.degToRad(snapRotateDeg)
+              : undefined
+          }
+          onObjectChange={handleObjectChange}
+        />
+      )}
 
       {/* Actual model */}
       <group ref={groupRef}>
@@ -142,12 +149,15 @@ function SceneContent({
         </Suspense>
       </group>
 
-      <OrbitControls
-        ref={orbitRef}
-        makeDefault
-        enableDamping
-        dampingFactor={0.08}
-      />
+      {orbitEnabled && (
+        <OrbitControls
+          ref={orbitRef}
+          makeDefault
+          enableDamping
+          dampingFactor={0.08}
+        />
+      )}
+
       <Environment preset="city" />
     </>
   );
