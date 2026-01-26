@@ -1,10 +1,10 @@
+import React, { useRef } from "react";
 import KfhViewer from "./Components/KfhViewer";
 import Gold from "@assets/media/Gold.png";
-import Navigation from "./Components/Navigation";
-
-const NAV_H = 176;
 
 export default function App() {
+  const scrollTargetRef = useRef(null);
+
   return (
     <div className="relative min-h-screen bg-zinc-950">
       {/* Background image */}
@@ -18,21 +18,30 @@ export default function App() {
         </div>
       </div>
 
-      {/* Nav */}
-      <div className="relative z-20">
-        <Navigation />
-      </div>
-
-      {/* Fullscreen canvas area except nav */}
+      {/* Fixed viewer */}
       <div
         className="fixed left-0 right-0 z-10"
-        style={{ top: NAV_H, height: `calc(100vh - ${NAV_H}px)` }}
+        style={{ top: 0, height: `calc(100vh - ${0}px)` }}
       >
-        <KfhViewer navH={NAV_H} />
+        <KfhViewer navH={0} scrollTargetRef={scrollTargetRef} />
       </div>
 
-      {/* Scroll space to drive the animation (2 screens) */}
-      <div className="relative z-0" style={{ height: "220vh" }} />
+      {/* Scroll space drives animation */}
+      <div
+        ref={scrollTargetRef}
+        className="relative z-0"
+        style={{ height: "900vh" }}
+      >
+        <div className="h-screen bg-white/15" />
+        <div className="h-screen bg-white/25" />
+        <div className="h-screen bg-white/5" />
+        <div className="h-screen bg-white/15" />
+        <div className="h-screen bg-white/25" />
+        <div className="h-screen bg-white/5" />
+        <div className="h-screen bg-white/15" />
+        <div className="h-screen bg-white/25" />
+        <div className="h-screen bg-white/5" />
+      </div>
     </div>
   );
 }
