@@ -418,48 +418,48 @@ function ViewScene({ scrollYProgress, smooth = 12 }) {
     </>
   );
 }
-function PercentPicker({ enabled = true, containerRef, onPick }) {
-  useEffect(() => {
-    if (!enabled) return;
-    const el = containerRef?.current;
-    if (!el) return;
+// function PercentPicker({ enabled = true, containerRef, onPick }) {
+//   useEffect(() => {
+//     if (!enabled) return;
+//     const el = containerRef?.current;
+//     if (!el) return;
 
-    const handler = (e) => {
-      if (!e.shiftKey) return;
+//     const handler = (e) => {
+//       if (!e.shiftKey) return;
 
-      const rect = el.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top;
+//       const rect = el.getBoundingClientRect();
+//       const x = e.clientX - rect.left;
+//       const y = e.clientY - rect.top;
 
-      // clamp داخل الكونتينر
-      const cx = Math.max(0, Math.min(rect.width, x));
-      const cy = Math.max(0, Math.min(rect.height, y));
+//       // clamp داخل الكونتينر
+//       const cx = Math.max(0, Math.min(rect.width, x));
+//       const cy = Math.max(0, Math.min(rect.height, y));
 
-      const leftPct = (cx / rect.width) * 100;
-      const topPct = (cy / rect.height) * 100;
+//       const leftPct = (cx / rect.width) * 100;
+//       const topPct = (cy / rect.height) * 100;
 
-      const left = `${leftPct.toFixed(2)}%`;
-      const top = `${topPct.toFixed(2)}%`;
+//       const left = `${leftPct.toFixed(2)}%`;
+//       const top = `${topPct.toFixed(2)}%`;
 
-      const payload = { left, top };
+//       const payload = { left, top };
 
-      console.log("🟦 PICKED %:", payload);
+//       console.log("🟦 PICKED %:", payload);
 
-      // copy as two lines OR as array item (اختار اللي تحبه)
-      const pretty = `left: "${left}", top: "${top}"`;
-      if (navigator?.clipboard?.writeText) {
-        navigator.clipboard.writeText(pretty).catch(() => {});
-      }
+//       // copy as two lines OR as array item (اختار اللي تحبه)
+//       const pretty = `left: "${left}", top: "${top}"`;
+//       if (navigator?.clipboard?.writeText) {
+//         navigator.clipboard.writeText(pretty).catch(() => {});
+//       }
 
-      onPick?.(payload);
-    };
+//       onPick?.(payload);
+//     };
 
-    window.addEventListener("pointerdown", handler, { passive: true });
-    return () => window.removeEventListener("pointerdown", handler);
-  }, [enabled, containerRef, onPick]);
+//     window.addEventListener("pointerdown", handler, { passive: true });
+//     return () => window.removeEventListener("pointerdown", handler);
+//   }, [enabled, containerRef, onPick]);
 
-  return null;
-}
+//   return null;
+// }
 
 export default function KfhViewer({ navH = 0, scrollTargetRef }) {
   const viewRef = useRef(null);
@@ -549,17 +549,17 @@ export default function KfhViewer({ navH = 0, scrollTargetRef }) {
 
   return (
     <motion.div ref={rootRef} className="relative h-full w-full">
-      <PercentPicker
+      {/* <PercentPicker
         enabled
         containerRef={rootRef}
         onPick={({ left, top }) => {
           setCoarseLeft((prev) => [...prev, left]);
           setCoarseTop((prev) => [...prev, top]);
         }}
-      />
+      /> */}
 
       {/* overlay show arrays */}
-      <div className="absolute z-50 top-3 right-3 bg-black/60 text-white text-xs p-3 rounded-md max-w-[520px] ">
+      {/* <div className="absolute z-50 top-3 right-3 bg-black/60 text-white text-xs p-3 rounded-md max-w-[520px] ">
         <div className="font-semibold mb-2">Percent Picker (Shift + Click)</div>
 
         <div className="mb-2 opacity-80">Copied: left/top on each click</div>
@@ -591,7 +591,7 @@ export default function KfhViewer({ navH = 0, scrollTargetRef }) {
             </pre>
           </div>
         </div>
-      </div>
+      </div> */}
 
       <Canvas
         frameloop="always"
