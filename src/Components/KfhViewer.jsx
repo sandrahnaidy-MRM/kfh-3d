@@ -1,14 +1,13 @@
-import React, { Suspense, useEffect, useMemo, useRef } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Environment, View, useGLTF } from "@react-three/drei";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import {
   motion,
   useScroll,
   useSpring,
   useTransform,
   useVelocity,
-  useMotionValueEvent,
 } from "framer-motion";
+import React, { Suspense, useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 
 const MODEL_URL = "/models/kfh.glb";
@@ -154,7 +153,7 @@ function densifyKeyframes(coarseKeys, coarseVals, steps = 180) {
 }
 
 /**
- * ✅ PointPicker that works anywhere (sides included)
+ *  PointPicker that works anywhere (sides included)
  * - listens on window pointerdown
  * - computes NDC relative to canvas rect
  * - Shift+Click to pick
@@ -464,12 +463,12 @@ function ViewScene({ scrollYProgress, smooth = 12 }) {
 export default function KfhViewer({ navH = 0, scrollTargetRef }) {
   const viewRef = useRef(null);
   const { scrollYProgress } = useScroll({
-    target: scrollTargetRef, // ✅ the 880vh div
-    offset: ["start start", "end end"], // ✅ 0..1 from top to bottom
+    target: scrollTargetRef, //  the 880vh div
+    offset: ["start start", "end end"], //  0..1 from top to bottom
   });
 
   const rootRef = useRef(null);
-  const [currentStep, setCurrentStep] = React.useState(0);
+  // const [currentStep, setCurrentStep] = React.useState(0);
 
   const [coarseLeft, setCoarseLeft] = React.useState([
     "10.98%",
@@ -508,24 +507,25 @@ export default function KfhViewer({ navH = 0, scrollTargetRef }) {
     mass: 1.35,
   });
   // shows smoothed value (recommended)
-  useMotionValueEvent(scrollSmooth, "change", (v) => {
-    setCurrentStep(v);
-  });
+  // useMotionValueEvent(scrollSmooth, "change", (v) => {
+  //   setCurrentStep(v);
+  // });
   const coarseKeys = useMemo(() => {
     const n = coarseLeft.length;
     const end = 0.9;
     if (n < 2) return [0, end];
     return Array.from({ length: n }, (_, i) => (i / (n - 1)) * end);
   }, [coarseLeft.length]);
+  const coarseW = [650, 700, 760, 760, 740, 700, 650];
+  const coarseH = [650, 690, 740, 740, 720, 690, 650];
+
+  // your path
+  // const coarseLeft = ["90%", "85%", "78%", "68%", "55%", "35%", "10%"];
+  // const coarseTop = ["70%", "100%", "112%", "125%", "112%", "100%", "70%"];
 
   const STEPS = 220;
 
   const frames = useMemo(() => {
-    // make W/H arrays match length of coarseLeft
-    const n = coarseLeft.length;
-    const coarseW = Array.from({ length: n }, (_, i) => 700);
-    const coarseH = Array.from({ length: n }, (_, i) => 700);
-
     const w = densifyKeyframes(coarseKeys, coarseW, STEPS);
     const h = densifyKeyframes(coarseKeys, coarseH, STEPS);
     const left = densifyKeyframes(coarseKeys, coarseLeft, STEPS);

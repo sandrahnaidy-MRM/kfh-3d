@@ -32,15 +32,15 @@ export default function App() {
         className="relative z-0"
         style={{ height: "900vh" }}
       >
-        <div className="h-screen bg-white/15" />
-        <div className="h-screen bg-white/25" />
         <div className="h-screen bg-white/5" />
         <div className="h-screen bg-white/15" />
-        <div className="h-screen bg-white/25" />
+        <div className="h-screen bg-white/20" />
         <div className="h-screen bg-white/5" />
         <div className="h-screen bg-white/15" />
-        <div className="h-screen bg-white/25" />
+        <div className="h-screen bg-white/20" />
         <div className="h-screen bg-white/5" />
+        <div className="h-screen bg-white/15" />
+        <div className="h-screen bg-white/20" />
       </div>
     </div>
   );
