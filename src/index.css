@@ -1,5 +1,7 @@
 @import "tailwindcss";
+
 @plugin "tailwind-scrollbar-hide";
+
 @layer utilities {
   .no-scrollbar {
     -ms-overflow-style: none;
@@ -46,17 +48,6 @@
   font-weight: 300;
   font-style: normal;
 }
-/*
-100: Thin / Hairline
-200: Extra Light / Ultra Light
-300: Light
-400: Normal (default body text)
-500: Medium
-600: Semi-Bold / Demi-Bold
-700: Bold (default for headings)
-800: Extra Bold / Ultra Bold
-900: Black / Heavy 
-*/
 
 html,
 body,

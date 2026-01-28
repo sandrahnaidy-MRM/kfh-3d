@@ -13,7 +13,7 @@ import * as THREE from "three";
 const MODEL_URL = "/models/kfh.glb";
 useGLTF.preload(MODEL_URL);
 
-// More scenes + smooth interpolation (no jumping)
+// Scenes + smooth interpolation (no jumping)
 const LIGHT_SCENES = [
   {
     key: 0.0,
@@ -150,74 +150,6 @@ function densifyKeyframes(coarseKeys, coarseVals, steps = 180) {
   }
 
   return { keys, vals };
-}
-
-/**
- *  PointPicker that works anywhere (sides included)
- * - listens on window pointerdown
- * - computes NDC relative to canvas rect
- * - Shift+Click to pick
- */
-function PointPicker({ enabled = true, onPick }) {
-  const { camera, scene, gl } = useThree();
-  const raycaster = useMemo(() => new THREE.Raycaster(), []);
-  const mouse = useMemo(() => new THREE.Vector2(), []);
-
-  useEffect(() => {
-    if (!enabled) return;
-
-    const canvas = gl.domElement;
-
-    const handler = (e) => {
-      if (!e.shiftKey) return;
-
-      const rect = canvas.getBoundingClientRect();
-      const insideX = e.clientX >= rect.left && e.clientX <= rect.right;
-      const insideY = e.clientY >= rect.top && e.clientY <= rect.bottom;
-
-      // Allow clicks even if you click "near sides" of the screen,
-      // but still need a valid rect size to compute.
-      // If you want to ONLY pick when inside canvas, uncomment:
-      // if (!insideX || !insideY) return;
-
-      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-
-      mouse.set(x, y);
-      raycaster.setFromCamera(mouse, camera);
-
-      const hits = raycaster.intersectObjects(scene.children, true);
-      if (!hits.length) return;
-
-      const hit = hits[0];
-      const world = hit.point.clone();
-
-      const local = world.clone();
-      if (hit.object) hit.object.worldToLocal(local);
-
-      const payload = {
-        world: { x: world.x, y: world.y, z: world.z },
-        local: { x: local.x, y: local.y, z: local.z },
-        uv: hit.uv ? { u: hit.uv.x, v: hit.uv.y } : null,
-        faceIndex: hit.faceIndex ?? null,
-        objectName: hit.object?.name ?? null,
-      };
-
-      console.log("📍 PICKED POINT:", payload);
-
-      const pretty = JSON.stringify(payload, null, 2);
-      if (navigator?.clipboard?.writeText) {
-        navigator.clipboard.writeText(pretty).catch(() => {});
-      }
-
-      onPick?.(payload);
-    };
-
-    window.addEventListener("pointerdown", handler, { passive: true });
-    return () => window.removeEventListener("pointerdown", handler);
-  }, [enabled, camera, scene, gl, raycaster, mouse, onPick]);
-
-  return null;
 }
 
 function ViewScene({ scrollYProgress, smooth = 12 }) {
@@ -417,48 +349,6 @@ function ViewScene({ scrollYProgress, smooth = 12 }) {
     </>
   );
 }
-// function PercentPicker({ enabled = true, containerRef, onPick }) {
-//   useEffect(() => {
-//     if (!enabled) return;
-//     const el = containerRef?.current;
-//     if (!el) return;
-
-//     const handler = (e) => {
-//       if (!e.shiftKey) return;
-
-//       const rect = el.getBoundingClientRect();
-//       const x = e.clientX - rect.left;
-//       const y = e.clientY - rect.top;
-
-//       // clamp داخل الكونتينر
-//       const cx = Math.max(0, Math.min(rect.width, x));
-//       const cy = Math.max(0, Math.min(rect.height, y));
-
-//       const leftPct = (cx / rect.width) * 100;
-//       const topPct = (cy / rect.height) * 100;
-
-//       const left = `${leftPct.toFixed(2)}%`;
-//       const top = `${topPct.toFixed(2)}%`;
-
-//       const payload = { left, top };
-
-//       console.log("🟦 PICKED %:", payload);
-
-//       // copy as two lines OR as array item (اختار اللي تحبه)
-//       const pretty = `left: "${left}", top: "${top}"`;
-//       if (navigator?.clipboard?.writeText) {
-//         navigator.clipboard.writeText(pretty).catch(() => {});
-//       }
-
-//       onPick?.(payload);
-//     };
-
-//     window.addEventListener("pointerdown", handler, { passive: true });
-//     return () => window.removeEventListener("pointerdown", handler);
-//   }, [enabled, containerRef, onPick]);
-
-//   return null;
-// }
 
 export default function KfhViewer({ navH = 0, scrollTargetRef }) {
   const viewRef = useRef(null);
@@ -468,9 +358,8 @@ export default function KfhViewer({ navH = 0, scrollTargetRef }) {
   });
 
   const rootRef = useRef(null);
-  // const [currentStep, setCurrentStep] = React.useState(0);
 
-  const [coarseLeft, setCoarseLeft] = React.useState([
+  const coarseLeft = [
     "10.98%",
     "40%",
     "50%",
@@ -483,9 +372,9 @@ export default function KfhViewer({ navH = 0, scrollTargetRef }) {
     "60%",
     "55%",
     "45%", //center
-  ]);
+  ];
 
-  const [coarseTop, setCoarseTop] = React.useState([
+  const coarseTop = [
     "100%",
     "80%",
     "70%",
@@ -498,18 +387,14 @@ export default function KfhViewer({ navH = 0, scrollTargetRef }) {
     "100%",
     "80%",
     "90%", //center
-  ]);
-  const [picked, setPicked] = React.useState([]);
+  ];
 
   const scrollSmooth = useSpring(scrollYProgress, {
     stiffness: 38,
     damping: 26,
     mass: 1.35,
   });
-  // shows smoothed value (recommended)
-  // useMotionValueEvent(scrollSmooth, "change", (v) => {
-  //   setCurrentStep(v);
-  // });
+
   const coarseKeys = useMemo(() => {
     const n = coarseLeft.length;
     const end = 0.9;
@@ -518,10 +403,6 @@ export default function KfhViewer({ navH = 0, scrollTargetRef }) {
   }, [coarseLeft.length]);
   const coarseW = [650, 700, 760, 760, 740, 700, 650];
   const coarseH = [650, 690, 740, 740, 720, 690, 650];
-
-  // your path
-  // const coarseLeft = ["90%", "85%", "78%", "68%", "55%", "35%", "10%"];
-  // const coarseTop = ["70%", "100%", "112%", "125%", "112%", "100%", "70%"];
 
   const STEPS = 220;
 
@@ -549,50 +430,6 @@ export default function KfhViewer({ navH = 0, scrollTargetRef }) {
 
   return (
     <motion.div ref={rootRef} className="relative h-full w-full">
-      {/* <PercentPicker
-        enabled
-        containerRef={rootRef}
-        onPick={({ left, top }) => {
-          setCoarseLeft((prev) => [...prev, left]);
-          setCoarseTop((prev) => [...prev, top]);
-        }}
-      /> */}
-
-      {/* overlay show arrays */}
-      {/* <div className="absolute z-50 top-3 right-3 bg-black/60 text-white text-xs p-3 rounded-md max-w-[520px] ">
-        <div className="font-semibold mb-2">Percent Picker (Shift + Click)</div>
-
-        <div className="mb-2 opacity-80">Copied: left/top on each click</div>
-
-        <div className="space-y-2 ">
-          <div>
-            <div className="font-semibold">coarseLeft</div>
-            <pre className="whitespace-pre-wrap wrap-break-word overflow-x-hidden">
-              {JSON.stringify(coarseLeft)}
-            </pre>
-          </div>
-          <div>
-            <div className="font-semibold">coarseTop</div>
-            <pre className="whitespace-pre-wrap wrap-break-word overflow-x-hidden">
-              {JSON.stringify(coarseTop)}
-            </pre>
-          </div>
-          <div>
-            <div className="font-semibold">coarseKeys</div>
-            <pre className="whitespace-pre-wrap wrap-break-word overflow-x-hidden">
-              {JSON.stringify(coarseKeys)}
-            </pre>
-          </div>
-
-          <div>
-            <div className="font-semibold">current step</div>
-            <pre className="whitespace-pre-wrap wrap-break-word overflow-x-hidden">
-              {currentStep.toFixed(4)}
-            </pre>
-          </div>
-        </div>
-      </div> */}
-
       <Canvas
         frameloop="always"
         className="absolute inset-0"
@@ -602,14 +439,10 @@ export default function KfhViewer({ navH = 0, scrollTargetRef }) {
       >
         <View track={viewRef}>
           <ViewScene scrollYProgress={scrollSmooth} smooth={12} />
-          <PointPicker
-            enabled
-            onPick={(p) => setPicked((prev) => [...prev, p])}
-          />
         </View>
       </Canvas>
 
-      {/* View window - keep pointer-events-none so it doesn't block clicks */}
+      {/* View window */}
       <motion.div
         ref={viewRef}
         className="absolute pointer-events-none"
